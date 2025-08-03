@@ -8,7 +8,29 @@ from .models import Customer, Loan
 
 @shared_task
 def ingest_customer_data():
-    """Ingest customer data from Excel file using background worker"""
+    """
+    Ingest customer data from Excel file using background worker.
+    
+    Reads customer data from 'data/customer_data.xlsx' and creates or updates
+    Customer records in the database. Uses atomic transactions to ensure data
+    consistency.
+    
+    Expected Excel columns:
+        customer_id: Unique customer identifier
+        first_name: Customer's first name
+        last_name: Customer's last name
+        phone_number: Contact phone number
+        monthly_salary: Monthly income
+        approved_limit: Credit limit
+        current_debt: Current outstanding debt
+    
+    Returns:
+        dict: Processing result with status, counts, and message
+            - status: 'success' or 'error'
+            - customers_created: Number of new customers created
+            - customers_updated: Number of existing customers updated
+            - message: Success or error message
+    """
     try:
         # Read customer data from Excel
         df = pd.read_excel('data/customer_data.xlsx')
@@ -61,7 +83,34 @@ def ingest_customer_data():
 
 @shared_task
 def ingest_loan_data():
-    """Ingest loan data from Excel file using background worker"""
+    """
+    Ingest loan data from Excel file using background worker.
+    
+    Reads loan data from 'data/loan_data.xlsx' and creates or updates
+    Loan records in the database. Links loans to existing customers and
+    handles date parsing for start and end dates.
+    
+    Expected Excel columns:
+        customer_id: Customer identifier (must exist in database)
+        loan_id: Unique loan identifier
+        loan_amount: Principal loan amount
+        tenure: Loan duration in months
+        interest_rate: Annual interest rate
+        monthly_repayment: Monthly EMI amount
+        EMIs_paid_on_time: Number of EMIs paid on time
+        start_date: Loan start date
+        end_date: Loan end date (can be null for active loans)
+    
+    Returns:
+        dict: Processing result with status, counts, and message
+            - status: 'success' or 'error'
+            - loans_created: Number of new loans created
+            - loans_updated: Number of existing loans updated
+            - message: Success or error message
+            
+    Note:
+        Loans for non-existent customers are skipped
+    """
     try:
         # Read loan data from Excel
         df = pd.read_excel('data/loan_data.xlsx')
@@ -129,7 +178,18 @@ def ingest_loan_data():
 
 @shared_task
 def ingest_all_data():
-    """Ingest both customer and loan data"""
+    """
+    Ingest both customer and loan data using background workers.
+    
+    Initiates parallel processing of customer and loan data ingestion.
+    Returns task IDs for monitoring the progress of both operations.
+    
+    Returns:
+        dict: Task information
+            - customer_task_id: Celery task ID for customer ingestion
+            - loan_task_id: Celery task ID for loan ingestion
+            - message: Confirmation message
+    """
     customer_result = ingest_customer_data.delay()
     loan_result = ingest_loan_data.delay()
     

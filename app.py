@@ -1,7 +1,20 @@
 #!/usr/bin/env python
 """
-Unified entry point for the Credit Approval System
-Handles database setup, migrations, and running the Django application
+Unified entry point for the Credit Approval System.
+
+Handles database setup, migrations, and running the Django application.
+Provides a single command-line interface for all application operations
+including development server, testing, data ingestion, and database management.
+
+Usage:
+    python app.py [command] [options]
+    
+Commands:
+    runserver    - Start development server (default)
+    setup        - Setup database and run migrations
+    test         - Run test suite
+    ingest       - Ingest customer and loan data
+    [other]      - Pass through to Django management commands
 """
 import os
 import sys
@@ -14,7 +27,23 @@ from dotenv import load_dotenv
 load_dotenv()
 
 def create_database_if_not_exists():
-    """Create PostgreSQL database if it doesn't exist"""
+    """
+    Create PostgreSQL database if it doesn't exist.
+    
+    Attempts to connect to the target database. If the database doesn't exist,
+    creates it using the default 'postgres' database connection. Includes
+    retry logic for handling database server startup delays.
+    
+    Environment Variables:
+        POSTGRES_HOST: Database host (default: localhost)
+        POSTGRES_PORT: Database port (default: 5432)
+        POSTGRES_USER: Database user (default: postgres)
+        POSTGRES_PASSWORD: Database password (default: postgres)
+        POSTGRES_DB: Target database name (default: credit_approval_db)
+    
+    Raises:
+        SystemExit: If database creation fails or connection cannot be established
+    """
     import time
     max_retries = 30
     retry_delay = 2
@@ -64,7 +93,19 @@ def create_database_if_not_exists():
                     sys.exit(1)
 
 def setup_database():
-    """Set up database and run migrations"""
+    """
+    Set up database and run migrations.
+    
+    Creates the database if it doesn't exist, sets up Django environment,
+    creates and runs database migrations. This function ensures the
+    database is ready for the application to run.
+    
+    Environment Variables:
+        DJANGO_SETTINGS_MODULE: Django settings module (default: credit_approval.settings)
+    
+    Raises:
+        SystemExit: If database setup fails
+    """
     print("Setting up database...")
     
     # Create database if it doesn't exist
@@ -87,7 +128,25 @@ def setup_database():
     print("Database setup complete!")
 
 def main():
-    """Main entry point"""
+    """
+    Main entry point for the application.
+    
+    Parses command-line arguments and executes the appropriate action:
+    - setup: Database setup only
+    - runserver: Setup database and start development server
+    - test: Setup database and run tests
+    - ingest: Setup database and ingest data
+    - other: Pass through to Django management commands
+    
+    If no command is provided, defaults to running the development server.
+    
+    Command Line Arguments:
+        sys.argv[1]: Command to execute (optional)
+        sys.argv[2:]: Additional arguments passed to Django commands
+    
+    Environment Variables:
+        DJANGO_SETTINGS_MODULE: Django settings module
+    """
     if len(sys.argv) > 1:
         command = sys.argv[1]
         

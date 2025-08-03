@@ -14,7 +14,28 @@ from .services import CreditScoreService, LoanService
 
 @api_view(['POST'])
 def register_customer(request):
-    """Register a new customer"""
+    """
+    Register a new customer with automatic approved limit calculation.
+    
+    Endpoint: POST /api/register/
+    
+    Calculates the approved credit limit as 36 * monthly_salary rounded to the nearest lakh.
+    Creates a new customer record with the calculated approved limit.
+    
+    Request Body:
+        first_name: Customer's first name (string)
+        last_name: Customer's last name (string)
+        age: Customer's age (integer, 18-100)
+        monthly_income: Monthly salary/income (decimal)
+        phone_number: Contact phone number (integer, min 10 digits)
+    
+    Response:
+        201 Created: Customer registered successfully
+        400 Bad Request: Validation errors
+        
+    Returns:
+        Response: Customer details including calculated approved_limit
+    """
     serializer = CustomerSerializer(data=request.data)
     if serializer.is_valid():
         # Calculate approved limit
@@ -50,7 +71,32 @@ def register_customer(request):
 
 @api_view(['POST'])
 def check_eligibility(request):
-    """Check loan eligibility for a customer"""
+    """
+    Check loan eligibility for a customer based on credit score and business rules.
+    
+    Endpoint: POST /api/check-eligibility/
+    
+    Evaluates loan eligibility using the customer's credit score and applies business rules:
+    - Credit score > 50: Approve any loan
+    - Credit score 30-50: Approve loans with interest rate > 12%
+    - Credit score 10-30: Approve loans with interest rate > 16%
+    - Credit score < 10: No loans approved
+    - Total EMIs > 50% of monthly salary: No loans approved
+    
+    Request Body:
+        customer_id: Customer ID to check eligibility for (integer)
+        loan_amount: Requested loan amount (decimal)
+        interest_rate: Proposed interest rate (decimal, 0-100)
+        tenure: Loan duration in months (integer, 1-120)
+    
+    Response:
+        200 OK: Eligibility check completed
+        400 Bad Request: Validation errors
+        404 Not Found: Customer not found
+        
+    Returns:
+        Response: Eligibility result with approval status and corrected interest rate
+    """
     serializer = LoanEligibilitySerializer(data=request.data)
     if serializer.is_valid():
         customer_id = serializer.validated_data['customer_id']
@@ -87,7 +133,28 @@ def check_eligibility(request):
 
 @api_view(['POST'])
 def create_loan(request):
-    """Create a new loan"""
+    """
+    Create a new loan if the customer is eligible.
+    
+    Endpoint: POST /api/create-loan/
+    
+    Processes a loan application based on eligibility check. If approved, creates
+    a new loan record with the corrected interest rate and calculated monthly EMI.
+    
+    Request Body:
+        customer_id: Customer ID applying for loan (integer)
+        loan_amount: Requested loan amount (decimal)
+        interest_rate: Proposed interest rate (decimal, 0-100)
+        tenure: Loan duration in months (integer, 1-120)
+    
+    Response:
+        201 Created: Loan approved and created successfully
+        400 Bad Request: Loan not approved or validation errors
+        404 Not Found: Customer not found
+        
+    Returns:
+        Response: Loan creation result with loan ID and monthly installment
+    """
     serializer = LoanCreateSerializer(data=request.data)
     if serializer.is_valid():
         customer_id = serializer.validated_data['customer_id']
@@ -130,7 +197,25 @@ def create_loan(request):
 
 @api_view(['GET'])
 def view_loan(request, loan_id):
-    """View loan details"""
+    """
+    View detailed loan information including customer details.
+    
+    Endpoint: GET /api/view-loan/{loan_id}/
+    
+    Retrieves comprehensive loan details including customer information,
+    loan terms, and payment status.
+    
+    Args:
+        request: HTTP request object
+        loan_id: Unique identifier of the loan (integer)
+    
+    Response:
+        200 OK: Loan details retrieved successfully
+        404 Not Found: Loan not found
+        
+    Returns:
+        Response: Detailed loan information with customer details
+    """
     try:
         loan = Loan.objects.get(loan_id=loan_id)
     except Loan.DoesNotExist:
@@ -145,7 +230,25 @@ def view_loan(request, loan_id):
 
 @api_view(['GET'])
 def view_customer_loans(request, customer_id):
-    """View all loans for a customer"""
+    """
+    View all loans for a specific customer.
+    
+    Endpoint: GET /api/view-loans/{customer_id}/
+    
+    Retrieves a list of all loans associated with the specified customer,
+    including current and completed loans.
+    
+    Args:
+        request: HTTP request object
+        customer_id: Unique identifier of the customer (integer)
+    
+    Response:
+        200 OK: Customer loans retrieved successfully
+        404 Not Found: Customer not found
+        
+    Returns:
+        Response: List of loan details for the customer
+    """
     try:
         customer = Customer.objects.get(customer_id=customer_id)
     except Customer.DoesNotExist:

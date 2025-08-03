@@ -5,17 +5,34 @@ from .models import Customer, Loan
 
 
 class CreditScoreService:
-    """Service for calculating credit scores and loan eligibility"""
+    """
+    Service for calculating credit scores and determining loan eligibility.
+    
+    Provides methods to calculate credit scores based on customer loan history
+    and determine loan approval based on credit score and business rules.
+    Implements the credit scoring algorithm as specified in the requirements.
+    """
     
     @staticmethod
     def calculate_credit_score(customer):
         """
-        Calculate credit score (0-100) based on:
-        1. Past loans paid on time
-        2. Number of loans taken in past
-        3. Loan activity in current year
-        4. Loan approved volume
-        5. Current debt vs approved limit
+        Calculate credit score (0-100) based on multiple criteria.
+        
+        Credit score is calculated using the following components:
+        1. Past loans paid on time (40 points)
+        2. Number of loans taken in past (20 points)
+        3. Loan activity in current year (20 points)
+        4. Loan approved volume (20 points)
+        5. Current debt vs approved limit (automatic 0 if exceeded)
+        
+        Args:
+            customer: Customer object to calculate credit score for
+            
+        Returns:
+            int: Credit score between 0 and 100
+            
+        Note:
+            Returns 0 immediately if current loans exceed approved limit
         """
         # Check if current loans exceed approved limit
         current_loans_total = customer.get_current_loans_total()
@@ -80,8 +97,26 @@ class CreditScoreService:
     @staticmethod
     def check_loan_eligibility(customer, loan_amount, interest_rate, tenure):
         """
-        Check loan eligibility based on credit score and business rules
-        Returns: (approval, corrected_interest_rate, monthly_installment)
+        Check loan eligibility based on credit score and business rules.
+        
+        Evaluates loan eligibility using credit score and applies business rules:
+        - Credit score > 50: Approve any loan
+        - Credit score 30-50: Approve loans with interest rate > 12%
+        - Credit score 10-30: Approve loans with interest rate > 16%
+        - Credit score < 10: No loans approved
+        - Total EMIs > 50% of monthly salary: No loans approved
+        
+        Args:
+            customer: Customer object applying for loan
+            loan_amount: Requested loan amount
+            interest_rate: Proposed interest rate
+            tenure: Loan duration in months
+            
+        Returns:
+            tuple: (approval, corrected_interest_rate, monthly_installment)
+                - approval: Boolean indicating if loan is approved
+                - corrected_interest_rate: Interest rate after correction (if needed)
+                - monthly_installment: Calculated monthly EMI
         """
         credit_score = CreditScoreService.calculate_credit_score(customer)
         
@@ -124,7 +159,20 @@ class CreditScoreService:
     
     @staticmethod
     def calculate_monthly_emi(loan_amount, interest_rate, tenure):
-        """Calculate monthly EMI using compound interest formula"""
+        """
+        Calculate monthly EMI using compound interest formula.
+        
+        Uses the standard EMI formula: P * r * (1 + r)^n / ((1 + r)^n - 1)
+        where P = principal, r = monthly interest rate, n = tenure in months
+        
+        Args:
+            loan_amount: Principal loan amount
+            interest_rate: Annual interest rate percentage
+            tenure: Loan duration in months
+            
+        Returns:
+            float: Calculated monthly EMI rounded to 2 decimal places
+        """
         if tenure <= 0 or interest_rate <= 0:
             return 0
         
@@ -143,11 +191,34 @@ class CreditScoreService:
 
 
 class LoanService:
-    """Service for loan operations"""
+    """
+    Service for loan operations and management.
+    
+    Provides methods for creating loans, retrieving loan details,
+    and managing loan-related operations. Integrates with CreditScoreService
+    for eligibility checks.
+    """
     
     @staticmethod
     def create_loan(customer, loan_amount, interest_rate, tenure):
-        """Create a new loan if eligible"""
+        """
+        Create a new loan if the customer is eligible.
+        
+        Checks loan eligibility using CreditScoreService and creates the loan
+        if approved. Sets the loan start date to today and calculates the
+        monthly repayment amount.
+        
+        Args:
+            customer: Customer object applying for the loan
+            loan_amount: Requested loan amount
+            interest_rate: Proposed interest rate
+            tenure: Loan duration in months
+            
+        Returns:
+            tuple: (loan, message)
+                - loan: Loan object if created, None if not approved
+                - message: Success or rejection message
+        """
         approval, corrected_interest_rate, monthly_installment = CreditScoreService.check_loan_eligibility(
             customer, loan_amount, interest_rate, tenure
         )
@@ -169,7 +240,15 @@ class LoanService:
     
     @staticmethod
     def get_loan_details(loan_id):
-        """Get detailed loan information"""
+        """
+        Get detailed loan information by loan ID.
+        
+        Args:
+            loan_id: Unique identifier of the loan
+            
+        Returns:
+            Loan: Loan object if found, None if not found
+        """
         try:
             return Loan.objects.get(loan_id=loan_id)
         except Loan.DoesNotExist:
@@ -177,7 +256,15 @@ class LoanService:
     
     @staticmethod
     def get_customer_loans(customer_id):
-        """Get all loans for a customer"""
+        """
+        Get all loans for a specific customer.
+        
+        Args:
+            customer_id: Unique identifier of the customer
+            
+        Returns:
+            QuerySet: All loans for the customer, empty list if customer not found
+        """
         try:
             customer = Customer.objects.get(customer_id=customer_id)
             return customer.loans.all()
