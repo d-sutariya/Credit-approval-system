@@ -18,12 +18,18 @@ def register_customer(request):
     serializer = CustomerSerializer(data=request.data)
     if serializer.is_valid():
         # Calculate approved limit
-        monthly_salary = serializer.validated_data['monthly_salary']
+        monthly_salary = serializer.validated_data['monthly_income']
         approved_limit = Customer.calculate_approved_limit(monthly_salary)
         
         # Create customer with calculated approved limit
-        customer_data = serializer.validated_data
-        customer_data['approved_limit'] = approved_limit
+        customer_data = {
+            'first_name': serializer.validated_data['first_name'],
+            'last_name': serializer.validated_data['last_name'],
+            'age': serializer.validated_data['age'],
+            'phone_number': serializer.validated_data['phone_number'],
+            'monthly_salary': monthly_salary,
+            'approved_limit': approved_limit,
+        }
         
         customer = Customer.objects.create(**customer_data)
         
@@ -32,7 +38,7 @@ def register_customer(request):
             'customer_id': customer.customer_id,
             'name': customer.name,
             'age': customer.age,
-            'monthly_income': customer.monthly_income,
+            'monthly_income': customer.monthly_salary,
             'approved_limit': customer.approved_limit,
             'phone_number': customer.phone_number
         }

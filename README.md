@@ -42,17 +42,17 @@ A Django-based credit approval system that evaluates loan eligibility based on c
 
 3. **Run database migrations**
    ```bash
-   docker-compose exec web python manage.py migrate
+   docker-compose exec web python app.py migrate
    ```
 
 4. **Ingest initial data from Excel files**
    ```bash
-   docker-compose exec web python manage.py ingest_data
+   docker-compose exec web python app.py ingest
    ```
 
 5. **Create a superuser (optional)**
    ```bash
-   docker-compose exec web python manage.py createsuperuser
+   docker-compose exec web python app.py createsuperuser
    ```
 
 The application will be available at:
@@ -248,20 +248,20 @@ The project includes comprehensive unit tests for models, services, and API endp
 
 ```bash
 # Run all tests
-docker-compose exec web python manage.py test
+docker-compose exec web python app.py test
 
 # Run specific test classes
-docker-compose exec web python manage.py test loans.tests.CustomerModelTest
-docker-compose exec web python manage.py test loans.tests.LoanModelTest
-docker-compose exec web python manage.py test loans.tests.CreditScoreServiceTest
-docker-compose exec web python manage.py test loans.tests.APITest
+docker-compose exec web python app.py test loans.tests.CustomerModelTest
+docker-compose exec web python app.py test loans.tests.LoanModelTest
+docker-compose exec web python app.py test loans.tests.CreditScoreServiceTest
+docker-compose exec web python app.py test loans.tests.APITest
 
 # Run with verbose output
-docker-compose exec web python manage.py test -v 2
+docker-compose exec web python app.py test -v 2
 
 # Run tests locally (if not using Docker)
-python manage.py test
-python manage.py test loans.tests.APITest -v 2
+python app.py test
+python app.py test loans.tests.APITest -v 2
 ```
 
 ### Code Quality
@@ -271,8 +271,8 @@ python manage.py test loans.tests.APITest -v 2
 
 ### Database Migrations
 ```bash
-docker-compose exec web python manage.py makemigrations
-docker-compose exec web python manage.py migrate
+docker-compose exec web python app.py makemigrations
+docker-compose exec web python app.py migrate
 ```
 
 ## Deployment

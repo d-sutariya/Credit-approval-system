@@ -19,13 +19,17 @@ services:
 
   web:
     build: .
-    command: /wait-for-it.sh db:5432 -- python manage.py runserver 0.0.0.0:8000
+    command: python app.py runserver
     volumes:
       - .:/app
     ports:
       - "8000:8000"
     environment:
-      - DATABASE_URL=postgresql://postgres:postgres@db:5432/credit_approval_db
+      - POSTGRES_DB=credit_approval_db
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_HOST=db
+      - POSTGRES_PORT=5432
       - REDIS_URL=redis://redis:6379/0
     depends_on:
       - db

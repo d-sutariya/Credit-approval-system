@@ -96,7 +96,7 @@ class CreditScoreService:
         )
         
         # Check if total EMIs (including new loan) exceed 50% of monthly salary
-        total_emis = current_emis_total + float(monthly_installment)
+        total_emis = float(current_emis_total) + float(monthly_installment)
         if total_emis > float(customer.monthly_salary) * 0.5:
             return False, interest_rate, 0
         

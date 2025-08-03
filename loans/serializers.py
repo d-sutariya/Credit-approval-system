@@ -5,12 +5,12 @@ from decimal import Decimal
 
 class CustomerSerializer(serializers.ModelSerializer):
     name = serializers.CharField(read_only=True)
-    monthly_income = serializers.DecimalField(source='monthly_salary', max_digits=12, decimal_places=2)
+    monthly_income = serializers.DecimalField(max_digits=12, decimal_places=2)
 
     class Meta:
         model = Customer
         fields = [
-            'customer_id', 'first_name', 'last_name', 'age', 
+            'customer_id', 'first_name', 'last_name', 'name', 'age', 
             'monthly_income', 'phone_number', 'approved_limit'
         ]
         read_only_fields = ['customer_id', 'approved_limit']

@@ -107,4 +107,23 @@ class Loan(models.Model):
         """Get loan activity score based on payment history"""
         if self.tenure == 0:
             return 0
-        return (self.emis_paid_on_time / self.tenure) * 100 
+        return (self.emis_paid_on_time / self.tenure) * 100
+
+    @staticmethod
+    def calculate_monthly_emi(loan_amount, interest_rate, tenure):
+        """Calculate monthly EMI using compound interest formula"""
+        if tenure <= 0 or interest_rate <= 0:
+            return 0
+        
+        # Convert annual interest rate to monthly
+        monthly_rate = float(interest_rate) / 100 / 12
+        
+        # EMI formula: P * r * (1 + r)^n / ((1 + r)^n - 1)
+        principal = float(loan_amount)
+        n = tenure
+        
+        if monthly_rate == 0:
+            return principal / n
+        
+        emi = principal * monthly_rate * (1 + monthly_rate)**n / ((1 + monthly_rate)**n - 1)
+        return round(emi, 2) 
