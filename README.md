@@ -26,6 +26,9 @@ A Django-based credit approval system that evaluates loan eligibility based on c
 
 ## Quick Start
 
+### Demo Video
+https://drive.google.com/file/d/1z4lhEjGuPTiuwpzmH2aq7XiaAWhqLdkJ/view?usp=sharing
+
 ### Prerequisites
 
 - Docker and Docker Compose installed
