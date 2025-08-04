@@ -20,6 +20,7 @@ import os
 import sys
 import django
 import psycopg2
+from pathlib import Path
 from django.core.management import execute_from_command_line
 from dotenv import load_dotenv
 
@@ -170,7 +171,32 @@ def main():
             # Setup database and ingest data
             setup_database()
             print("Ingesting data...")
-            execute_from_command_line(['manage.py', 'ingest_data'])
+            
+            # Import and run ingestion directly
+            from loans.tasks import ingest_customer_data_direct, ingest_loan_data_direct
+            
+            try:
+                # Run customer ingestion
+                print("Ingesting customer data...")
+                customer_result = ingest_customer_data_direct()
+                print(f"Customer data ingestion completed!")
+                print(f"Status: {customer_result['status']}")
+                print(f"Customers created: {customer_result.get('customers_created', 0)}")
+                print(f"Customers updated: {customer_result.get('customers_updated', 0)}")
+                print(f"Message: {customer_result['message']}")
+                
+                # Run loan ingestion
+                print("\nIngesting loan data...")
+                loan_result = ingest_loan_data_direct()
+                print(f"Loan data ingestion completed!")
+                print(f"Status: {loan_result['status']}")
+                print(f"Loans created: {loan_result.get('loans_created', 0)}")
+                print(f"Loans updated: {loan_result.get('loans_updated', 0)}")
+                print(f"Message: {loan_result['message']}")
+                
+            except Exception as e:
+                print(f"Error during data ingestion: {str(e)}")
+                sys.exit(1)
             return
         else:
             # Pass through to Django management commands
@@ -181,6 +207,7 @@ def main():
     # Default: setup and run server
     setup_database()
     print("Starting development server...")
+    # execute_from_command_line(['manage.py', 'ingest_data'])
     execute_from_command_line(['manage.py', 'runserver', '0.0.0.0:8000'])
 
 if __name__ == "__main__":

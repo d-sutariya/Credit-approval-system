@@ -1,24 +1,28 @@
 # Credit Approval System
 
-A Django-based credit approval system that evaluates loan eligibility based on customer credit scores and historical data.
+A Django-based credit approval system that evaluates loan eligibility based on customer credit scores and historical data. The system automatically ingests data from Excel files and provides a unified entry point for all operations.
 
 ## Features
 
-- Customer registration with automatic approved limit calculation
-- Credit score calculation based on historical loan data
-- Loan eligibility checking with interest rate adjustments
-- Loan creation and management
-- Background data ingestion from Excel files
-- RESTful API endpoints
-- Dockerized deployment
+- **Unified Entry Point**: Single `app.py` command handles all operations
+- **Automatic Data Ingestion**: Excel data loaded automatically on startup
+- **Customer Registration**: Automatic approved limit calculation (36 × monthly salary)
+- **Credit Score Calculation**: Based on historical loan data (0-100 scale)
+- **Loan Eligibility Checking**: With interest rate adjustments
+- **Loan Creation and Management**: Complete loan lifecycle
+- **Background Tasks**: Celery for data processing
+- **RESTful API**: Complete API for all operations
+- **Dockerized Deployment**: Production-ready containerization
+- **Cross-Platform**: Uses pathlib for Windows/Linux/macOS compatibility
 
 ## Technology Stack
 
-- **Backend**: Django 4.2.7 + Django REST Framework
-- **Database**: PostgreSQL
-- **Background Tasks**: Celery + Redis
+- **Backend**: Django 4.2.7 + Django REST Framework 3.14.0
+- **Database**: PostgreSQL 15
+- **Background Tasks**: Celery 5.3.4 + Redis 7-alpine
 - **Containerization**: Docker + Docker Compose
-- **Data Processing**: Pandas + OpenPyXL
+- **Data Processing**: Pandas 2.1.4 + OpenPyXL 3.1.2
+- **Environment**: python-decouple 3.8
 
 ## Quick Start
 
@@ -40,24 +44,55 @@ A Django-based credit approval system that evaluates loan eligibility based on c
    docker-compose up --build
    ```
 
-3. **Run database migrations**
-   ```bash
-   docker-compose exec web python app.py migrate
-   ```
-
-4. **Ingest initial data from Excel files**
-   ```bash
-   docker-compose exec web python app.py ingest
-   ```
-
-5. **Create a superuser (optional)**
-   ```bash
-   docker-compose exec web python app.py createsuperuser
-   ```
+The application will automatically:
+- Setup the PostgreSQL database
+- Run Django migrations
+- Ingest customer and loan data from Excel files
+- Start the development server
 
 The application will be available at:
 - **API**: http://localhost:8000/api/
 - **Admin**: http://localhost:8000/admin/
+
+### Local Development (Without Docker)
+
+1. **Install dependencies**
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+2. **Setup PostgreSQL database**
+   - Create database: `credit_approval_db`
+   - Update environment variables in `.env` file
+
+3. **Run the application**
+   ```bash
+   python app.py
+   ```
+
+## Unified Command Interface
+
+The `app.py` file provides a unified entry point for all operations:
+
+```bash
+# Start development server (default)
+python app.py
+
+# Setup database and run migrations
+python app.py setup
+
+# Ingest data from Excel files
+python app.py ingest
+
+# Run tests
+python app.py test
+
+# Run any Django management command
+python app.py makemigrations
+python app.py migrate
+python app.py createsuperuser
+python app.py shell
+```
 
 ## API Endpoints
 
@@ -80,7 +115,7 @@ Register a new customer with automatic approved limit calculation.
 **Response:**
 ```json
 {
-    "customer_id": 1,
+    "customer_id": 301,
     "name": "John Doe",
     "age": 30,
     "monthly_income": 50000,
@@ -134,7 +169,7 @@ Create a new loan if the customer is eligible.
 **Response:**
 ```json
 {
-    "loan_id": 1,
+    "loan_id": 783,
     "customer_id": 1,
     "loan_approved": true,
     "message": "Loan approved successfully",
@@ -219,71 +254,106 @@ The system calculates credit scores (0-100) based on:
 ## Data Models
 
 ### Customer
-- `customer_id` (Primary Key)
-- `first_name`, `last_name`
-- `age`, `phone_number`
+- `customer_id` (AutoField Primary Key)
+- `first_name`, `last_name`, `age`
+- `phone_number` (unique)
 - `monthly_salary`, `approved_limit`, `current_debt`
 - `created_at`, `updated_at`
 
 ### Loan
-- `loan_id` (Primary Key)
-- `customer` (Foreign Key)
+- `loan_id` (AutoField Primary Key)
+- `customer` (Foreign Key to Customer)
 - `loan_amount`, `tenure`, `interest_rate`
 - `monthly_repayment`, `emis_paid_on_time`
 - `start_date`, `end_date`, `status`
 - `created_at`, `updated_at`
 
-## Background Tasks
+## Data Ingestion
 
-The system uses Celery for background data ingestion:
+The system automatically ingests data from Excel files:
 
-- **Customer Data Ingestion**: Processes `customer_data.xlsx`
-- **Loan Data Ingestion**: Processes `loan_data.xlsx`
-- **Combined Ingestion**: Runs both tasks
+### Customer Data (`data/customer_data.xlsx`)
+Expected columns:
+- Customer ID, First Name, Last Name, Age
+- Phone Number, Monthly Salary, Approved Limit
+
+### Loan Data (`data/loan_data.xlsx`)
+Expected columns:
+- Customer ID, Loan ID, Loan Amount, Tenure
+- Interest Rate, Monthly payment, EMIs paid on Time
+- Date of Approval, End Date
+
+### Ingestion Process
+1. **Automatic on startup** - Data loaded when running `python app.py`
+2. **Manual ingestion** - Run `python app.py ingest`
+3. **Sequence reset** - Auto-increment sequences updated after ingestion
 
 ## Development
 
 ### Running Tests
-The project includes comprehensive unit tests for models, services, and API endpoints.
-
 ```bash
 # Run all tests
-docker-compose exec web python app.py test
+python app.py test
 
 # Run specific test classes
-docker-compose exec web python app.py test loans.tests.CustomerModelTest
-docker-compose exec web python app.py test loans.tests.LoanModelTest
-docker-compose exec web python app.py test loans.tests.CreditScoreServiceTest
-docker-compose exec web python app.py test loans.tests.APITest
+python app.py test loans.tests.CustomerModelTest
+python app.py test loans.tests.LoanModelTest
+python app.py test loans.tests.CreditScoreServiceTest
+python app.py test loans.tests.APITest
 
 # Run with verbose output
-docker-compose exec web python app.py test -v 2
-
-# Run tests locally (if not using Docker)
-python app.py test
-python app.py test loans.tests.APITest -v 2
+python app.py test -v 2
 ```
 
-### Code Quality
-- Follow PEP 8 style guidelines
-- Use meaningful variable and function names
-- Add docstrings to functions and classes
-
-### Database Migrations
+### Database Operations
 ```bash
-docker-compose exec web python app.py makemigrations
-docker-compose exec web python app.py migrate
+# Setup database and run migrations
+python app.py setup
+
+# Create new migrations
+python app.py makemigrations
+
+# Apply migrations
+python app.py migrate
+
+# Create superuser
+python app.py createsuperuser
 ```
 
-## Deployment
-
-The application is fully containerized and can be deployed using:
-
+### Background Tasks
 ```bash
-docker-compose up -d
+# Start Celery worker (for background tasks)
+celery -A credit_approval worker --loglevel=info
+
+# Start Celery beat (for scheduled tasks)
+celery -A credit_approval beat --loglevel=info
 ```
 
-All services (Django, PostgreSQL, Redis, Celery) are orchestrated through Docker Compose.
+## Docker Deployment
+
+### Production Deployment
+```bash
+# Build and start all services
+docker-compose up --build -d
+
+# View logs
+docker-compose logs -f web
+
+# Stop services
+docker-compose down
+```
+
+### Services
+- **web**: Django application (port 8000)
+- **db**: PostgreSQL database (port 5432)
+- **redis**: Redis cache (port 6379)
+- **celery**: Background task worker
+
+### Startup Sequence
+The Docker container automatically runs:
+1. Database setup and migrations
+2. Data ingestion from Excel files
+3. Django development server
 
 ## Error Handling
 
@@ -293,6 +363,32 @@ The API includes comprehensive error handling:
 - **500 Internal Server Error**: Server-side errors
 
 All errors return structured JSON responses with descriptive messages.
+
+## File Structure
+
+```
+Credit-approval-system/
+├── app.py                 # Unified entry point
+├── start.sh              # Docker startup script
+├── requirements.txt      # Python dependencies
+├── Dockerfile           # Docker configuration
+├── docker-compose.yml   # Service orchestration
+├── data/                # Excel data files
+│   ├── customer_data.xlsx
+│   └── loan_data.xlsx
+├── credit_approval/     # Django project
+│   ├── settings.py
+│   ├── urls.py
+│   └── celery.py
+├── loans/              # Django app
+│   ├── models.py       # Data models
+│   ├── views.py        # API views
+│   ├── serializers.py  # Data serialization
+│   ├── services.py     # Business logic
+│   ├── tasks.py        # Background tasks
+│   └── tests.py        # Unit tests
+└── README.md           # This file
+```
 
 ## Contributing
 

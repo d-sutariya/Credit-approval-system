@@ -1,4 +1,4 @@
-FROM python:3.11-slim
+FROM python:3.10-slim
 
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1
@@ -20,5 +20,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy project
 COPY . .
 
-# Run the application
-CMD ["python", "app.py", "runserver"] 
+# Make startup script executable
+RUN chmod +x /app/start.sh
+
+# Run the startup script
+CMD ["/app/start.sh"] 

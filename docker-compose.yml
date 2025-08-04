@@ -19,7 +19,6 @@ services:
 
   web:
     build: .
-    command: python app.py runserver
     volumes:
       - .:/app
     ports:
